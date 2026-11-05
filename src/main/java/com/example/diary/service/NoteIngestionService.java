@@ -34,11 +34,11 @@ public class NoteIngestionService {
     private final ObjectMapper objectMapper;
 
     public NoteIngestionService(DailyUserNoteRepository noteRepository,
-                                NoteEntityExtractionRepository extractionRepository,
-                                VectorStore vectorStore,
-                                TokenTextSplitter textSplitter,
-                                ChatClient.Builder chatClientBuilder,
-                                ObjectMapper objectMapper) {
+            NoteEntityExtractionRepository extractionRepository,
+            VectorStore vectorStore,
+            TokenTextSplitter textSplitter,
+            ChatClient.Builder chatClientBuilder,
+            ObjectMapper objectMapper) {
         this.noteRepository = noteRepository;
         this.extractionRepository = extractionRepository;
         this.vectorStore = vectorStore;
@@ -74,9 +74,9 @@ public class NoteIngestionService {
             Document rawDocument = new Document(section.content(), metadata);
             List<Document> chunks = textSplitter.apply(List.of(rawDocument));
             documentsToEmbed.addAll(chunks);
-            
+
             // Trigger Async Extraction (Features 3 & 7)
-            extractEntitiesAndTripletsAsync(savedNote);
+            // extractEntitiesAndTripletsAsync(savedNote);
         }
 
         if (!documentsToEmbed.isEmpty()) {
@@ -93,17 +93,16 @@ public class NoteIngestionService {
             String prompt = """
                     Analyze the following diary entry. Extract any people mentioned, locations visited, and rate the overall mood from 1 to 10.
                     Also, extract relational triplets (Subject, Predicate, Object) to form a basic knowledge graph.
-                    
+
                     Entry: {entry}
-                    
+
                     {format}
                     """;
 
             PromptTemplate template = new PromptTemplate(prompt);
             String response = chatClient.prompt(template.create(Map.of(
                     "entry", note.getContent(),
-                    "format", converter.getFormat()
-            ))).call().content();
+                    "format", converter.getFormat()))).call().content();
             ExtractedData data = converter.convert(response);
 
             if (data != null) {
@@ -113,7 +112,7 @@ public class NoteIngestionService {
                 extraction.setLocations(String.join(",", data.locations()));
                 extraction.setMoodScore(data.moodScore());
                 extraction.setTripletsJson(objectMapper.writeValueAsString(data.triplets()));
-                
+
                 extractionRepository.save(extraction);
             }
         } catch (Exception e) {
